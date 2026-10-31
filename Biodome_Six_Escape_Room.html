@@ -525,3 +525,76 @@ dialog::backdrop{ background:rgba(5,20,18,.5); }
 <text class="cm-label" x="590" y="348" text-anchor="middle">Intermembrane space</text>
 </svg></template>
 
+<script>
+/* Biodome Six: room data. Shared by the game and the facilitator-guide builder. */
+const CO2 = 'CO<sub>2</sub>', O2 = 'O<sub>2</sub>', H2O = 'H<sub>2</sub>O';
+const GLU = 'C<sub>6</sub>H<sub>12</sub>O<sub>6</sub>';
+const NADP = 'NADP<sup>+</sup>', NAD = 'NAD<sup>+</sup>', FADH2 = 'FADH<sub>2</sub>';
+const PI = 'P<sub>i</sub>', HP = 'H<sup>+</sup>';
+
+const ROOMS = [
+  /* ───────────── ROOM 1 ───────────── */
+  {
+    id: 1,
+    name: 'Command Deck',
+    topic: 'The two master equations',
+    where: 'Whole organism',
+    color: 'var(--r1)',
+    helix: `Crew member, the dome’s ${CO2} is climbing and its ${O2} is falling. When the life-support model crashed, I sealed every door. Rebuild the two master equations so I can reload it, then confirm you know what each process is <em>for</em>.`,
+    parts: [
+      {
+        type: 'equation',
+        title: 'Rebuild the master equations',
+        prompt: 'Tap a molecule, then tap a blank to place it. Tap a filled blank to clear it. Every molecule can be used in both equations, and one tile is a decoy. Order within each side doesn’t matter.',
+        tiles: [
+          { id: 'co2', html: `6${CO2}` },
+          { id: 'h2o', html: `6${H2O}` },
+          { id: 'light', html: 'Light energy' },
+          { id: 'glu', html: GLU },
+          { id: 'o2', html: `6${O2}` },
+          { id: 'atp', html: 'Energy (ATP + heat)' },
+          { id: 'chl', html: 'Chlorophyll' }
+        ],
+        eqs: [
+          { label: 'Photosynthesis', left: ['co2', 'h2o', 'light'], right: ['glu', 'o2'] },
+          { label: 'Cellular respiration', left: ['glu', 'o2'], right: ['co2', 'h2o', 'atp'] }
+        ],
+        key: `Photosynthesis: 6${CO2} + 6${H2O} + light energy → ${GLU} + 6${O2}. Cellular respiration: ${GLU} + 6${O2} → 6${CO2} + 6${H2O} + energy (ATP + heat). Chlorophyll is the decoy: it absorbs light but is not consumed, so it is not a reactant.`
+      },
+      {
+        type: 'mc',
+        title: 'Purpose check: photosynthesis',
+        prompt: 'What is the main purpose of photosynthesis for the plant?',
+        options: [
+          { id: 'a', html: 'To produce oxygen so that animals and the crew can breathe' },
+          { id: 'b', html: 'To convert light energy into chemical energy stored in the bonds of glucose' },
+          { id: 'c', html: 'To break down glucose and release its energy as ATP' },
+          { id: 'd', html: 'To convert the chemical energy in glucose into light energy' }
+        ],
+        answer: 'b',
+        key: `Photosynthesis is anabolic and endergonic: it captures light energy and stores it as chemical energy in glucose. ${O2} is a byproduct of splitting water, not the goal (A). C describes cellular respiration; D reverses the energy conversion.`
+      },
+      {
+        type: 'mc',
+        title: 'Purpose check: cellular respiration',
+        prompt: 'What is the main purpose of cellular respiration?',
+        options: [
+          { id: 'a', html: 'To create new energy from oxygen' },
+          { id: 'b', html: 'To remove carbon dioxide from cells' },
+          { id: 'c', html: 'To build glucose so that energy can be stored' },
+          { id: 'd', html: 'To release the energy stored in glucose and capture part of it in ATP, the molecule cells spend to do work' }
+        ],
+        answer: 'd',
+        key: `Cellular respiration is catabolic and exergonic: it oxidizes glucose and transfers part of the released energy to ATP. Energy is never created (A, first law of thermodynamics); ${CO2} is a waste product, not the purpose (B); C describes photosynthesis.`
+      }
+    ],
+    hints: [
+      'In photosynthesis the plant takes in a gas, a liquid, and energy. In cellular respiration a cell takes in a sugar and a gas. Chlorophyll absorbs light but isn’t used up, so it isn’t a reactant.',
+      `The two equations are mirror images: the reactants of photosynthesis are the products of respiration. ${O2} is released by photosynthesis, but it is a byproduct, not the goal.`
+    ],
+    log: {
+      title: 'The equations are mirror images',
+      html: `<p>Photosynthesis, 6${CO2} + 6${H2O} + light energy → ${GLU} + 6${O2}, is <strong>anabolic and endergonic</strong>: it stores light energy in the bonds of glucose.</p><p>Cellular respiration, ${GLU} + 6${O2} → 6${CO2} + 6${H2O} + energy, is <strong>catabolic and exergonic</strong> (ΔG ≈ −2,870 kJ per mole of glucose): it releases that stored energy and captures about a third of it in ATP. The rest leaves as heat.</p>`
+    }
+  },
+
