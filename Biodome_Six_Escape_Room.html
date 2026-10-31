@@ -598,3 +598,61 @@ const ROOMS = [
     }
   },
 
+  /* ───────────── ROOM 2 ───────────── */
+  {
+    id: 2,
+    name: 'Navigation Bay',
+    topic: 'Where each stage happens',
+    where: 'Chloroplast, cytoplasm, mitochondrion',
+    color: 'var(--r2)',
+    helix: 'The repair drones need coordinates. Assign every stage to the compartment where it happens, or they’ll weld the wrong membrane. The station map is below.',
+    diagram: 'cellmap',
+    parts: [
+      {
+        type: 'selects',
+        title: 'Assign each stage a location',
+        prompt: 'Use the station map. Two stages share a location, and some locations are decoys.',
+        options: [
+          { id: 'thy', html: 'Thylakoid membranes (chloroplast)' },
+          { id: 'lum', html: 'Thylakoid lumen (chloroplast)' },
+          { id: 'str', html: 'Stroma (chloroplast)' },
+          { id: 'cyt', html: 'Cytoplasm (cytosol)' },
+          { id: 'omm', html: 'Outer mitochondrial membrane' },
+          { id: 'ims', html: 'Intermembrane space (mitochondrion)' },
+          { id: 'imm', html: 'Inner mitochondrial membrane (cristae)' },
+          { id: 'mat', html: 'Mitochondrial matrix' }
+        ],
+        rows: [
+          { id: 'lr', html: 'Light-dependent reactions', answer: 'thy' },
+          { id: 'cc', html: 'Calvin cycle', answer: 'str' },
+          { id: 'gly', html: 'Glycolysis', answer: 'cyt' },
+          { id: 'po', html: 'Pyruvate oxidation', answer: 'mat' },
+          { id: 'kc', html: 'Citric acid (Krebs) cycle', answer: 'mat' },
+          { id: 'ox', html: 'Oxidative phosphorylation (electron transport chain + chemiosmosis)', answer: 'imm' }
+        ],
+        key: 'The light reactions need membrane-embedded photosystems, so they occur on the thylakoid membranes; the Calvin cycle’s enzymes (including rubisco) are dissolved in the stroma. Glycolysis needs no organelle and occurs in the cytoplasm. Pyruvate oxidation and the citric acid cycle occur in the mitochondrial matrix. The ETC and ATP synthase are embedded in the inner mitochondrial membrane, whose folds (cristae) increase surface area.'
+      },
+      {
+        type: 'mc',
+        title: 'Which organelles?',
+        prompt: 'A cell in one of the greenhouse leaves contains:',
+        options: [
+          { id: 'a', html: 'Chloroplasts only, because plants get their energy from sunlight' },
+          { id: 'b', html: 'Mitochondria only' },
+          { id: 'c', html: 'Both chloroplasts and mitochondria, because plants photosynthesize and also carry out cellular respiration' },
+          { id: 'd', html: 'Neither, because leaves only store glucose' }
+        ],
+        answer: 'c',
+        key: 'Autotrophs make their own glucose, but they still have to break it down to make ATP for work such as active transport and growth. Plant cells therefore contain both organelles. A is the most common misconception.'
+      }
+    ],
+    hints: [
+      'Photosynthesis happens entirely inside the chloroplast. The light reactions need membrane-bound photosystems; the Calvin cycle’s enzymes float in fluid.',
+      'Glycolysis doesn’t need any organelle at all. The electron transport chain is made of proteins embedded in a membrane, and the membrane folded into cristae has the most surface area.'
+    ],
+    log: {
+      title: 'Every stage has an address',
+      html: '<p><strong>Chloroplast:</strong> light-dependent reactions on the thylakoid membranes, Calvin cycle in the stroma.</p><p><strong>Cellular respiration:</strong> glycolysis in the cytoplasm, then pyruvate oxidation and the citric acid cycle in the mitochondrial matrix, then oxidative phosphorylation on the inner mitochondrial membrane.</p><p>Plant cells contain both organelles: autotrophs respire too.</p>'
+    }
+  },
+
