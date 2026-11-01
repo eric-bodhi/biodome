@@ -656,3 +656,67 @@ const ROOMS = [
     }
   },
 
+  /* ───────────── ROOM 3 ───────────── */
+  {
+    id: 3,
+    name: 'Solar Array',
+    topic: 'Light-dependent reactions',
+    where: 'Thylakoid membranes',
+    color: 'var(--r3)',
+    helix: 'Grow lights are back on, but the array’s sorting system is scrambled. Tell it what the light reactions take in, what they give off, and what they never touch.',
+    parts: [
+      {
+        type: 'sort',
+        title: 'Sort the light-reaction molecules',
+        prompt: 'Mark each item as an input, an output, or not used by the light-dependent reactions.',
+        cats: [{ id: 'in', label: 'Input' }, { id: 'out', label: 'Output' }, { id: 'no', label: 'Not used' }],
+        items: [
+          { id: 'light', html: 'Light energy', answer: 'in' },
+          { id: 'h2o', html: H2O, answer: 'in' },
+          { id: 'co2', html: CO2, answer: 'no' },
+          { id: 'nadp', html: NADP, answer: 'in' },
+          { id: 'o2', html: O2, answer: 'out' },
+          { id: 'adp', html: `ADP + ${PI}`, answer: 'in' },
+          { id: 'atp', html: 'ATP', answer: 'out' },
+          { id: 'glu', html: 'Glucose', answer: 'no' },
+          { id: 'nadph', html: 'NADPH', answer: 'out' }
+        ],
+        key: `Inputs: light energy, ${H2O}, ${NADP}, ADP + ${PI}. Outputs: ${O2}, ATP, NADPH. Not used: ${CO2} and glucose, which belong to the Calvin cycle.`
+      },
+      {
+        type: 'mc',
+        title: 'Trace the oxygen',
+        prompt: `Biodome’s sensors detect ${O2} coming from the plants. Where do those oxygen atoms come from?`,
+        options: [
+          { id: 'a', html: `${CO2}, after the plant removes the carbon` },
+          { id: 'b', html: 'Glucose, as it is being built' },
+          { id: 'c', html: `${H2O}, split at photosystem II to replace the electrons that light energized` },
+          { id: 'd', html: 'Chlorophyll, which breaks down when it absorbs light' }
+        ],
+        answer: 'c',
+        key: `Photolysis at photosystem II splits water into electrons, ${HP}, and ${O2}. Isotope-tracing experiments with <sup>18</sup>O confirmed that the released oxygen comes from water, not ${CO2} (A, a classic misconception). The oxygen in ${CO2} ends up in glucose and water.`
+      },
+      {
+        type: 'mc',
+        title: 'How the array makes ATP',
+        prompt: 'How does the thylakoid membrane actually make ATP?',
+        options: [
+          { id: 'a', html: 'Light energy directly attaches a phosphate to ADP inside chlorophyll' },
+          { id: 'b', html: `The electron transport chain pumps ${HP} into the thylakoid lumen; ${HP} flows back out to the stroma through ATP synthase, which phosphorylates ADP` },
+          { id: 'c', html: `${HP} is pumped into the stroma, then flows into the lumen through ATP synthase` },
+          { id: 'd', html: 'Glucose is broken down in the stroma, releasing ATP' }
+        ],
+        answer: 'b',
+        key: `This is chemiosmosis (photophosphorylation). Energized electrons moving down the ETC power ${HP} pumping into the lumen, so the lumen has a low pH. ${HP} diffuses back to the stroma through ATP synthase, so ATP is made on the stroma side, right where the Calvin cycle needs it. C reverses the gradient.`
+      }
+    ],
+    hints: [
+      'The light reactions make the energy carriers the Calvin cycle spends, but they never touch carbon.',
+      `Photosystem II takes electrons from water. ${HP} piles up inside the thylakoid (the lumen) and then flows down its gradient back out.`
+    ],
+    log: {
+      title: 'Water is split; light becomes ATP and NADPH',
+      html: `<p><strong>Chlorophyll</strong> in photosystems II and I absorbs light (mostly red and blue wavelengths) and energizes electrons.</p><p>Water is split at photosystem II (photolysis), which is where the ${O2} comes from. The electron transport chain pumps ${HP} into the thylakoid lumen; ${HP} flows back to the stroma through ATP synthase (chemiosmosis). Electrons end on ${NADP}, forming NADPH.</p><p>Products: ATP and NADPH go to the Calvin cycle, and ${O2} leaves the leaf.</p>`
+    }
+  },
+
