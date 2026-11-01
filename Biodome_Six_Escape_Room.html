@@ -720,3 +720,77 @@ const ROOMS = [
     }
   },
 
+  /* ───────────── ROOM 4 ───────────── */
+  {
+    id: 4,
+    name: 'Greenhouse Lab',
+    topic: 'The Calvin cycle',
+    where: 'Stroma',
+    color: 'var(--r4)',
+    helix: 'The greenhouse is absorbing light but making no sugar. Feed the Calvin cycle controller the right inputs, the right combination, and the right sequence.',
+    parts: [
+      {
+        type: 'sort',
+        title: 'Sort the Calvin cycle molecules',
+        prompt: 'Mark each item as an input, an output, or not used directly by the Calvin cycle.',
+        cats: [{ id: 'in', label: 'Input' }, { id: 'out', label: 'Output' }, { id: 'no', label: 'Not used directly' }],
+        items: [
+          { id: 'co2', html: CO2, answer: 'in' },
+          { id: 'g3p', html: 'G3P (used to build glucose)', answer: 'out' },
+          { id: 'atp', html: 'ATP', answer: 'in' },
+          { id: 'o2', html: O2, answer: 'no' },
+          { id: 'nadp', html: NADP, answer: 'out' },
+          { id: 'nadph', html: 'NADPH', answer: 'in' },
+          { id: 'light', html: 'Light energy', answer: 'no' },
+          { id: 'adp', html: `ADP + ${PI}`, answer: 'out' }
+        ],
+        key: `Inputs: ${CO2}, ATP, NADPH. Outputs: G3P (two G3P make one glucose), ADP + ${PI}, ${NADP}. Not used directly: ${O2} and light. The cycle depends on light only indirectly, through the ATP and NADPH it receives.`
+      },
+      {
+        type: 'numbers',
+        title: 'Crack the controller combination',
+        prompt: 'One glucose molecule is built from 2 G3P, which takes 6 turns of the Calvin cycle. Enter what those 6 turns use.',
+        fields: [
+          { id: 'co2', html: `${CO2} fixed`, answer: 6 },
+          { id: 'atp', html: 'ATP used', answer: 18 },
+          { id: 'nadph', html: 'NADPH used', answer: 12 }
+        ],
+        max: 40,
+        key: `Each turn fixes 1 ${CO2} and spends 3 ATP and 2 NADPH, so 6 turns use 6 ${CO2}, 18 ATP, and 12 NADPH to make 2 G3P (one glucose). Combination: 6, 18, 12.`
+      },
+      {
+        type: 'order',
+        title: 'Restart the cycle in order',
+        prompt: 'Arrange the three phases in the order they happen, starting with carbon entering the cycle.',
+        items: [
+          { id: 'red', html: 'Reduction: ATP and NADPH convert 3-PGA into G3P (a 3-carbon sugar)' },
+          { id: 'regen', html: 'Regeneration: more ATP rebuilds RuBP from G3P so the cycle can turn again' },
+          { id: 'fix', html: `Carbon fixation: rubisco attaches ${CO2} to RuBP (a 5-carbon sugar), forming 3-PGA` }
+        ],
+        answer: ['fix', 'red', 'regen'],
+        key: `Carbon fixation (rubisco attaches ${CO2} to RuBP, forming 3-PGA), then reduction (ATP + NADPH turn 3-PGA into G3P), then regeneration of RuBP (uses more ATP).`
+      },
+      {
+        type: 'mc',
+        title: 'Lights out',
+        prompt: 'At night the grow lights shut off. Within minutes the Calvin cycle stops, even though it’s called “light-independent.” Why?',
+        options: [
+          { id: 'a', html: 'Rubisco is destroyed in darkness' },
+          { id: 'b', html: 'Glucose builds up and blocks the stroma' },
+          { id: 'c', html: 'It runs out of the ATP and NADPH that only the light reactions supply' },
+          { id: 'd', html: 'The Calvin cycle uses light directly to fix carbon' }
+        ],
+        answer: 'c',
+        key: `The two stages are coupled: the Calvin cycle spends ATP and NADPH and returns ADP + ${PI} and ${NADP} to the thylakoids to be recharged. Without light, that supply stops within minutes, so “light-independent” does not mean it runs in the dark for long.`
+      }
+    ],
+    hints: [
+      `Per turn: 1 ${CO2} in, 3 ATP and 2 NADPH spent. Multiply by 6.`,
+      `The Calvin cycle runs on the products of the light reactions and sends the “empty” carriers (ADP, ${NADP}) back to be recharged. Fixation comes first, and RuBP has to be regenerated last.`
+    ],
+    log: {
+      title: 'Carbon from the air becomes sugar',
+      html: `<p>In the stroma, rubisco fixes ${CO2} onto RuBP. ATP and NADPH from the light reactions reduce the product to G3P, and more ATP regenerates RuBP.</p><p>Six turns use 6 ${CO2}, 18 ATP, and 12 NADPH to make 2 G3P, which is one glucose. The carbon in glucose comes from ${CO2} in the air.</p><p>ADP, ${PI}, and ${NADP} return to the thylakoids to be recharged, so the two stages depend on each other.</p>`
+    }
+  },
+
