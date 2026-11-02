@@ -879,3 +879,99 @@ const ROOMS = [
     }
   },
 
+  /* ───────────── ROOM 6 ───────────── */
+  {
+    id: 6,
+    name: 'Main Airlock',
+    topic: 'Closing the loop',
+    where: 'The whole dome',
+    color: 'var(--r6)',
+    helix: 'Final door. Prove that the chloroplast systems and the mitochondrial systems are one loop, and I will open the airlock.',
+    parts: [
+      {
+        type: 'selects',
+        title: 'Route every product to its next job',
+        prompt: 'Each product of one process becomes useful somewhere else. Each destination is used once, and two are decoys.',
+        options: [
+          { id: 'acc', html: 'Final electron acceptor in oxidative phosphorylation' },
+          { id: 'fuel', html: 'Starting fuel for glycolysis' },
+          { id: 'fix', html: 'Fixed by rubisco in the Calvin cycle' },
+          { id: 'split', html: 'Split at photosystem II to replace electrons' },
+          { id: 'work', html: 'Powers cell work like active transport, movement, and building proteins' },
+          { id: 'light', html: 'Converted back into light for the plants' },
+          { id: 'stoma', html: 'Stored inside the stomata until needed' }
+        ],
+        rows: [
+          { id: 'o2', html: `${O2} released when the light reactions split water`, answer: 'acc' },
+          { id: 'glu', html: 'Glucose built from Calvin cycle G3P', answer: 'fuel' },
+          { id: 'co2', html: `${CO2} released by pyruvate oxidation and the citric acid cycle`, answer: 'fix' },
+          { id: 'h2o', html: `${H2O} formed at the end of the mitochondrial ETC`, answer: 'split' },
+          { id: 'atp', html: 'ATP made by cellular respiration', answer: 'work' }
+        ],
+        key: `${O2} → final electron acceptor. Glucose → fuel for glycolysis. ${CO2} → fixed by rubisco. ${H2O} → can be split at photosystem II. ATP → powers cell work (its energy is spent, not recycled). Light and stomata options are decoys: energy cannot be turned back into light for reuse, and stomata are pores for gas exchange, not storage.`
+      },
+      {
+        type: 'selects',
+        title: 'Speak the airlock passphrase',
+        prompt: 'Complete the rule that keeps Biodome Six alive.',
+        options: [
+          { id: 'cyc', html: 'cycles between the two processes' },
+          { id: 'flow', html: 'flows one way through, leaving as heat' },
+          { id: 'made', html: 'is created by the mitochondria' },
+          { id: 'lost', html: 'is destroyed by the chloroplasts' }
+        ],
+        rows: [
+          { id: 'matter', html: 'Matter (the C, H, and O atoms)…', answer: 'cyc' },
+          { id: 'energy', html: 'Energy…', answer: 'flow' }
+        ],
+        key: 'Matter cycles; energy flows. Atoms are rearranged, never created or destroyed. Energy enters as light, is stored in glucose, is transferred to ATP, and is eventually lost as heat (second law of thermodynamics).'
+      },
+      {
+        type: 'mc',
+        title: 'Thought experiment',
+        prompt: 'Suppose the dome’s lights failed permanently, but the plants, the crew, and the air all stayed sealed inside. What would happen?',
+        options: [
+          { id: 'a', html: 'Nothing; the two processes would keep recycling the same energy forever' },
+          { id: 'b', html: `Respiration would keep running normally because it produces its own ${O2}` },
+          { id: 'c', html: `Life would eventually stop: with no new light energy, glucose and ${O2} would run out, because energy lost as heat can’t be turned back into glucose` },
+          { id: 'd', html: 'The plants would switch to making glucose from the heat in the dome' }
+        ],
+        answer: 'c',
+        key: `Matter could still cycle, but energy cannot. Every transfer loses energy as heat, so a constant input of light is required. Respiration consumes ${O2} rather than producing it (B), and photosynthesis cannot run on heat (D).`
+      },
+      {
+        type: 'written',
+        title: 'File your report to HELIX',
+        prompt: 'In 2–4 sentences, explain how the products of photosynthesis are used in cellular respiration <em>and</em> how the products of cellular respiration can be used in photosynthesis. HELIX checks for all four key molecules and at least 25 words.',
+        minWords: 25,
+        groups: [
+          { label: 'glucose', re: 'glucose|sugar|c6h12o6|c₆h₁₂o₆' },
+          { label: 'oxygen', re: 'oxygen|(^|[^a-z])6?\\s?o[2₂]' },
+          { label: 'carbon dioxide', re: 'carbon dioxide|co[2₂]' },
+          { label: 'water', re: 'water|h[2₂]o' }
+        ],
+        key: `Sample full-credit answer: “Photosynthesis produces glucose and ${O2}. Cellular respiration uses that glucose as its fuel in glycolysis and uses the ${O2} as the final electron acceptor of the electron transport chain. Respiration releases ${CO2} and ${H2O}, which a plant can take back in: ${CO2} is fixed by rubisco in the Calvin cycle and ${H2O} is split in the light reactions. Matter cycles between the two processes, but energy flows through and is lost as heat.” Score on the 4-point scale in the facilitator guide.`
+      }
+    ],
+    hints: [
+      'Look back at Room 1: the products of each equation are the reactants of the other.',
+      'Energy is different from matter. Light energy can be stored and transferred, but every transfer loses some as heat, and heat can’t be turned back into glucose.'
+    ],
+    log: {
+      title: 'Matter cycles, energy flows',
+      html: `<p>Photosynthesis makes the glucose and ${O2} that cellular respiration uses; respiration releases the ${CO2} and ${H2O} that photosynthesis can use. Those atoms cycle between <strong>autotrophs</strong> and <strong>heterotrophs</strong> through gas exchange at leaf stomata and lungs.</p><p>Energy flows one way: light → glucose → ATP → heat. That’s why Biodome Six can recycle its air forever but needs its lights on.</p>`
+    }
+  }
+];
+
+const SOURCES = [
+  'College Board. <em>AP Biology Course and Exam Description.</em> College Board, 2025, apcentral.collegeboard.org/courses/ap-biology. Accessed 1 Nov. 2026.',
+  'Clark, Mary Ann, Matthew Douglas, and Jung Choi. <em>Biology 2e.</em> OpenStax, 2018, openstax.org/books/biology-2e/pages/1-introduction. Accessed 1 Nov. 2026.',
+  'Urry, Lisa A., et al. <em>Campbell Biology.</em> 12th ed., Pearson, 2020.',
+  'Zedalis, Julianne, and John Eggebrecht. <em>Biology for AP® Courses.</em> OpenStax, 2018. Chapter 7, “Cellular Respiration,” and Chapter 8, “Photosynthesis,” openstax.org/books/biology-ap-courses/pages/8-introduction. Accessed 1 Nov. 2026.'
+];
+const IMAGE_NOTE = 'Images: all diagrams, icons, and illustrations are original vector drawings made for this project. No outside images were used.';
+
+if (typeof module !== 'undefined') module.exports = { ROOMS, SOURCES, IMAGE_NOTE };
+
+</script>
