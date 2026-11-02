@@ -794,3 +794,88 @@ const ROOMS = [
     }
   },
 
+  /* ───────────── ROOM 5 ───────────── */
+  {
+    id: 5,
+    name: 'Power Core',
+    topic: 'Cellular respiration',
+    where: 'Cytoplasm and mitochondrion',
+    color: 'var(--r5)',
+    helix: 'Every cell in this dome, crew and plants alike, runs on ATP, and the generators are offline. Rebuild the respiration pipeline stage by stage.',
+    parts: [
+      {
+        type: 'table',
+        title: 'Wire the respiration pipeline',
+        prompt: 'For each stage, choose its main input and its outputs per glucose molecule. One output set is a decoy.',
+        colA: 'Main input',
+        colB: 'Outputs (per glucose)',
+        optionsA: [
+          { id: 'glu', html: `Glucose (+ 2 ATP invested, 2 ${NAD})` },
+          { id: 'pyr', html: '2 pyruvate' },
+          { id: 'acoa', html: '2 acetyl-CoA' },
+          { id: 'carriers', html: `NADH, ${FADH2}, and ${O2}` }
+        ],
+        optionsB: [
+          { id: 'o_gly', html: '2 pyruvate, 2 ATP (net), 2 NADH' },
+          { id: 'o_po', html: `2 acetyl-CoA, 2 ${CO2}, 2 NADH` },
+          { id: 'o_kc', html: `4 ${CO2}, 6 NADH, 2 ${FADH2}, 2 ATP` },
+          { id: 'o_ox', html: `About 26–28 ATP and 6 ${H2O}; ${NAD} and FAD recycled` },
+          { id: 'o_decoy', html: `2 G3P, 6 ${O2}, and ${NADP}` }
+        ],
+        rows: [
+          { id: 'gly', html: 'Glycolysis', a: 'glu', b: 'o_gly' },
+          { id: 'po', html: 'Pyruvate oxidation', a: 'pyr', b: 'o_po' },
+          { id: 'kc', html: 'Citric acid (Krebs) cycle', a: 'acoa', b: 'o_kc' },
+          { id: 'ox', html: 'Oxidative phosphorylation', a: 'carriers', b: 'o_ox' }
+        ],
+        key: `Glycolysis: glucose → 2 pyruvate, net 2 ATP, 2 NADH. Pyruvate oxidation: 2 pyruvate → 2 acetyl-CoA, 2 ${CO2}, 2 NADH. Citric acid cycle (2 turns): 2 acetyl-CoA → 4 ${CO2}, 6 NADH, 2 ${FADH2}, 2 ATP. Oxidative phosphorylation: NADH, ${FADH2}, ${O2} → about 26–28 ATP, 6 ${H2O}, with ${NAD} and FAD recycled. Total ≈ 30–32 ATP per glucose. The decoy describes the Calvin cycle and light reactions.`
+      },
+      {
+        type: 'numbers',
+        title: 'Track the carbon',
+        prompt: `Glucose enters with 6 carbon atoms. The ${CO2} scrubbers log where each carbon leaves as ${CO2}. Enter the number released in each stage, per glucose.`,
+        fields: [
+          { id: 'gly', html: 'Glycolysis', answer: 0 },
+          { id: 'po', html: 'Pyruvate oxidation', answer: 2 },
+          { id: 'kc', html: 'Citric acid cycle', answer: 4 }
+        ],
+        max: 12,
+        key: `Combination 0, 2, 4. Glycolysis splits glucose (6 C) into 2 pyruvate (3 C each) without releasing ${CO2}. Pyruvate oxidation removes one carbon from each pyruvate (2 ${CO2}). The citric acid cycle releases the remaining 4 carbons (2 per acetyl-CoA).`
+      },
+      {
+        type: 'mc',
+        title: 'The oxygen’s job',
+        prompt: `The crew inhales the ${O2} the plants released. What does that ${O2} actually do inside a mitochondrion?`,
+        options: [
+          { id: 'a', html: `It is the final electron acceptor at the end of the ETC, combining with electrons and ${HP} to form water` },
+          { id: 'b', html: `It combines with carbon from glucose to form the exhaled ${CO2}` },
+          { id: 'c', html: 'It is used in glycolysis to split glucose' },
+          { id: 'd', html: 'It carries electrons from the citric acid cycle to the ETC' }
+        ],
+        answer: 'a',
+        key: `${O2} is the final electron acceptor; it is reduced to ${H2O}. Without it, the ETC backs up, ${NAD} is not regenerated, and ATP production collapses. B is a classic misconception: the oxygen atoms in exhaled ${CO2} come from glucose and water, not inhaled ${O2}. NADH and ${FADH2} (not ${O2}) carry electrons (D).`
+      },
+      {
+        type: 'mc',
+        title: 'Where the ATP comes from',
+        prompt: 'Where is most of the ATP from one glucose made, and how?',
+        options: [
+          { id: 'a', html: 'Glycolysis, by substrate-level phosphorylation in the cytoplasm' },
+          { id: 'b', html: `The citric acid cycle, which makes one ATP each time ${CO2} is released` },
+          { id: 'c', html: `Oxidative phosphorylation: ${HP} is pumped from the intermembrane space into the matrix, then flows out through ATP synthase` },
+          { id: 'd', html: `Oxidative phosphorylation: the ETC pumps ${HP} from the matrix into the intermembrane space, and ${HP} flows back through ATP synthase` }
+        ],
+        answer: 'd',
+        key: `About 26–28 of the ≈30–32 ATP come from chemiosmosis. Electrons from NADH and ${FADH2} power ${HP} pumping from the matrix into the intermembrane space; ${HP} flows back into the matrix through ATP synthase. Glycolysis and the citric acid cycle make only 2 ATP each by substrate-level phosphorylation. C reverses the gradient.`
+      }
+    ],
+    hints: [
+      `Follow the carbon: glucose (6 C) → 2 pyruvate (3 C each) → 2 acetyl-CoA (2 C each), releasing 2 ${CO2} → the citric acid cycle releases the remaining carbons. Glycolysis releases none.`,
+      `NADH and ${FADH2} are electron shuttles that deliver energy to the ETC; ${O2} waits at the very end of the chain. In mitochondria the ${HP} gradient builds up in the intermembrane space.`
+    ],
+    log: {
+      title: 'Most ATP comes from a proton gradient',
+      html: `<p><strong>Glycolysis</strong> (cytoplasm) splits glucose into 2 pyruvate for a net 2 ATP and 2 NADH. <strong>Pyruvate oxidation</strong> and the <strong>citric acid cycle</strong> (matrix) release all 6 carbons as ${CO2} and load NADH and ${FADH2}.</p><p>In <strong>oxidative phosphorylation</strong> (inner membrane), the ETC uses those electrons to pump ${HP} into the intermembrane space; ${HP} flows back through ATP synthase, making about 26–28 of the roughly 30–32 ATP per glucose. ${O2} is the final electron acceptor and becomes ${H2O}.</p>`
+    }
+  },
+
