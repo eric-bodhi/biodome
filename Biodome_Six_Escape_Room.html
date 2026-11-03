@@ -1116,3 +1116,186 @@ function makeSelect(options, value, onChange, ariaLabel, colLabel){
   return wrap;
 }
 
+/* ───────── part renderers ───────── */
+const ARROW_SVG = '<svg viewBox="0 0 40 16" width="40" height="16" aria-hidden="true"><path d="M2 8 H34 M27 2 L35 8 L27 14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const ICON_UP = '<svg viewBox="0 0 16 16"><path d="M3 10 L8 5 L13 10"/></svg>';
+const ICON_DN = '<svg viewBox="0 0 16 16"><path d="M3 6 L8 11 L13 6"/></svg>';
+
+function renderPart(ri, pi, p, body){
+  const A = S.ans[ri]; const key = `r${ri}p${pi}`;
+  switch(p.type){
+    case 'mc': {
+      const box = h('div', {class:'mc', role:'radiogroup', 'aria-label':stripTags(p.title)});
+      p.options.forEach((o, k) => {
+        const lab = h('label');
+        const inp = h('input', {type:'radio', name:key, value:o.id});
+        if(A[pi]===o.id) inp.checked = true;
+        inp.addEventListener('change', () => { A[pi] = o.id; clearStatus(pi); });
+        lab.append(inp, h('span', {class:'opt-letter', 'aria-hidden':'true'}, String.fromCharCode(65+k)), h('span', {}, o.html));
+        box.appendChild(lab);
+      });
+      body.appendChild(box); break;
+    }
+    case 'equation': {
+      const st = A[pi];
+      const tiles = h('div', {class:'tiles', role:'group', 'aria-label':'Molecule tiles'});
+      p.tiles.forEach(t => {
+        const b = h('button', {type:'button', class:'tile', 'aria-pressed': String(st.sel===t.id)}, t.html);
+        b.addEventListener('click', () => { st.sel = st.sel===t.id ? null : t.id; $$('.tile', tiles).forEach((x,k) => x.setAttribute('aria-pressed', String(p.tiles[k].id===st.sel))); });
+        tiles.appendChild(b);
+      });
+      body.appendChild(tiles);
+      p.eqs.forEach((e, ei) => {
+        const wrap = h('div', {class:'eq'});
+        wrap.appendChild(h('div', {class:'eq-label'}, e.label));
+        const line = h('div', {class:'eq-line'});
+        const mk = (side, n) => {
+          const grp = h('div', {class:'eq-side'});
+          if(side==='right') grp.appendChild(h('span', {class:'op eq-arrow', role:'img', 'aria-label':'yields'}, ARROW_SVG));
+          for(let k=0;k<n;k++){
+            if(k>0) grp.appendChild(h('span', {class:'op', 'aria-hidden':'true'}, '+'));
+            const slot = h('button', {type:'button', class:'slot'});
+            const paint = () => { const v = st.eqs[ei][side][k]; const t = p.tiles.find(t => t.id===v); slot.innerHTML = t ? t.html : '?'; slot.classList.toggle('filled', !!t); slot.setAttribute('aria-label', `${e.label}, ${side==='left'?'reactant':'product'} ${k+1}: ${t?stripTags(t.html):'empty'}`); };
+            slot.addEventListener('click', () => {
+              if(st.sel){ st.eqs[ei][side][k] = st.sel; }
+              else { st.eqs[ei][side][k] = null; }
+              paint(); clearStatus(pi);
+            });
+            paint(); grp.appendChild(slot);
+          }
+          line.appendChild(grp);
+        };
+        mk('left', e.left.length);
+        mk('right', e.right.length);
+        wrap.appendChild(line); body.appendChild(wrap);
+      });
+      break;
+    }
+    case 'selects': {
+      const rows = h('div', {class:'rows'});
+      p.rows.forEach(r => {
+        const row = h('div', {class:'row'});
+        row.appendChild(h('div', {class:'row-label'}, r.html));
+        row.appendChild(makeSelect(p.options, A[pi][r.id], v => { A[pi][r.id] = v; clearStatus(pi); }, stripTags(r.html)));
+        rows.appendChild(row);
+      });
+      body.appendChild(rows); break;
+    }
+    case 'table': {
+      body.appendChild(h('div', {class:'tbl-head', 'aria-hidden':'true'}, `<span>Stage</span><span>${p.colA}</span><span>${p.colB}</span>`));
+      const rows = h('div', {class:'rows'});
+      p.rows.forEach(r => {
+        const row = h('div', {class:'row t3'});
+        row.appendChild(h('div', {class:'row-label'}, r.html));
+        row.appendChild(makeSelect(p.optionsA, A[pi][r.id].a, v => { A[pi][r.id].a = v; clearStatus(pi); }, `${stripTags(r.html)}, ${p.colA}`, p.colA));
+        row.appendChild(makeSelect(p.optionsB, A[pi][r.id].b, v => { A[pi][r.id].b = v; clearStatus(pi); }, `${stripTags(r.html)}, ${p.colB}`, p.colB));
+        rows.appendChild(row);
+      });
+      body.appendChild(rows); break;
+    }
+    case 'sort': {
+      const grid = h('div', {class:'sort'});
+      p.items.forEach(it => {
+        const card = h('div', {class:'sort-item'});
+        const tokId = `${key}-${it.id}`;
+        card.appendChild(h('span', {class:'tok', id:tokId}, it.html));
+        const seg = h('div', {class:'seg', role:'radiogroup', 'aria-labelledby':tokId});
+        p.cats.forEach(c => {
+          const lab = h('label');
+          const inp = h('input', {type:'radio', name:tokId, value:c.id});
+          if(A[pi][it.id]===c.id) inp.checked = true;
+          inp.addEventListener('change', () => { A[pi][it.id] = c.id; clearStatus(pi); });
+          lab.append(inp, document.createTextNode(c.label));
+          seg.appendChild(lab);
+        });
+        card.appendChild(seg); grid.appendChild(card);
+      });
+      body.appendChild(grid); break;
+    }
+    case 'numbers': {
+      const wrap = h('div', {class:'nums'});
+      p.fields.forEach(f => {
+        const box = h('div', {class:'num'});
+        const fid = `${key}-${f.id}`;
+        box.appendChild(h('label', {class:'num-label', for:fid}, f.html));
+        const dial = h('div', {class:'dial'});
+        const inp = h('input', {id:fid, type:'number', inputmode:'numeric', min:'0', max:String(p.max), value:A[pi][f.id]});
+        const set = v => { v = Math.max(0, Math.min(p.max, v)); inp.value = v; A[pi][f.id] = String(v); clearStatus(pi); };
+        const minus = h('button', {type:'button', 'aria-label':'Decrease '+stripTags(f.html)}, '−');
+        const plus = h('button', {type:'button', 'aria-label':'Increase '+stripTags(f.html)}, '+');
+        minus.addEventListener('click', () => set((parseInt(inp.value)||0) - 1));
+        plus.addEventListener('click', () => set((parseInt(inp.value)||0) + 1));
+        inp.addEventListener('input', () => { A[pi][f.id] = inp.value; clearStatus(pi); });
+        dial.append(minus, inp, plus); box.appendChild(dial); wrap.appendChild(box);
+      });
+      body.appendChild(wrap); break;
+    }
+    case 'order': {
+      const ol = h('ol', {class:'order'});
+      const paint = () => {
+        ol.innerHTML = '';
+        A[pi].forEach((id, k) => {
+          const it = p.items.find(x => x.id===id);
+          const li = h('li');
+          li.appendChild(h('span', {class:'pos', 'aria-hidden':'true'}, String(k+1)));
+          li.appendChild(h('span', {}, it.html));
+          const mv = h('div', {class:'mv'});
+          const up = h('button', {type:'button', 'aria-label':`Move up: ${stripTags(it.html).split(':')[0]}`}, ICON_UP);
+          const dn = h('button', {type:'button', 'aria-label':`Move down: ${stripTags(it.html).split(':')[0]}`}, ICON_DN);
+          up.disabled = k===0; dn.disabled = k===A[pi].length-1;
+          up.addEventListener('click', () => { const a=A[pi]; [a[k-1],a[k]]=[a[k],a[k-1]]; paint(); clearStatus(pi); ol.children[k-1].querySelector('button').focus(); });
+          dn.addEventListener('click', () => { const a=A[pi]; [a[k+1],a[k]]=[a[k],a[k+1]]; paint(); clearStatus(pi); ol.children[k+1].querySelectorAll('button')[1].focus(); });
+          mv.append(up, dn); li.appendChild(mv); ol.appendChild(li);
+        });
+      };
+      paint(); body.appendChild(ol); break;
+    }
+    case 'written': {
+      const wrap = h('div', {class:'written'});
+      const ta = h('textarea', {id:key+'-ta', 'aria-label':'Your explanation for HELIX', placeholder:'Photosynthesis produces…'});
+      ta.value = A[pi];
+      const chips = h('div', {class:'chips', 'aria-live':'polite'});
+      const paint = () => {
+        const t = ta.value.toLowerCase();
+        chips.innerHTML = '';
+        p.groups.forEach(g => chips.appendChild(h('span', {class:'chip'+(new RegExp(g.re).test(t)?' on':'')}, g.label)));
+        const n = (ta.value.trim().match(/\S+/g)||[]).length;
+        chips.appendChild(h('span', {class:'wc'}, `${n} / ${p.minWords} words`));
+      };
+      ta.addEventListener('input', () => { A[pi] = ta.value; paint(); clearStatus(pi); });
+      paint(); wrap.append(ta, chips); body.appendChild(wrap); break;
+    }
+  }
+}
+
+/* ───────── checking ───────── */
+function sameSet(a, b){ const x=[...a].sort().join('|'), y=[...b].sort().join('|'); return x===y; }
+function checkPart(p, a){
+  switch(p.type){
+    case 'mc': return a===p.answer ? {ok:true} : {ok:false, msg: a ? 'That choice isn’t right.' : 'Choose an answer.'};
+    case 'equation': {
+      let wrong = 0;
+      p.eqs.forEach((e, ei) => {
+        ['left','right'].forEach(side => {
+          const need = [...e[side]]; const got = a.eqs[ei][side];
+          got.forEach(v => { const k = need.indexOf(v); if(k>=0) need.splice(k,1); else wrong++; });
+        });
+      });
+      return wrong===0 ? {ok:true} : {ok:false, msg:`${wrong} blank${wrong>1?'s are':' is'} empty or wrong.`};
+    }
+    case 'selects': { const w = p.rows.filter(r => a[r.id]!==r.answer).length; return w===0?{ok:true}:{ok:false, msg:`${w} of ${p.rows.length} choices ${w>1?'are':'is'} wrong or missing.`}; }
+    case 'table': { let w=0; p.rows.forEach(r => { if(a[r.id].a!==r.a) w++; if(a[r.id].b!==r.b) w++; }); return w===0?{ok:true}:{ok:false, msg:`${w} of ${p.rows.length*2} connections ${w>1?'are':'is'} wrong or missing.`}; }
+    case 'sort': { const w = p.items.filter(i => a[i.id]!==i.answer).length; return w===0?{ok:true}:{ok:false, msg:`${w} item${w>1?'s are':' is'} sorted wrong or not sorted yet.`}; }
+    case 'numbers': { const w = p.fields.filter(f => String(parseInt(a[f.id]))!==String(f.answer)).length; return w===0?{ok:true}:{ok:false, msg:`${w} of ${p.fields.length} numbers ${w>1?'are':'is'} off.`}; }
+    case 'order': { const ok = a.every((v,k) => v===p.answer[k]); return ok?{ok:true}:{ok:false, msg:'The sequence is out of order.'}; }
+    case 'written': {
+      const t = a.toLowerCase(); const n = (a.trim().match(/\S+/g)||[]).length;
+      const miss = p.groups.filter(g => !new RegExp(g.re).test(t)).map(g => g.label);
+      if(miss.length) return {ok:false, msg:`HELIX can’t find: ${miss.join(', ')}.`};
+      if(n < p.minWords) return {ok:false, msg:`Add a little more detail (${n}/${p.minWords} words).`};
+      return {ok:true};
+    }
+  }
+}
+function clearStatus(pi){ const el = $(`#part-${pi}`); if(el){ el.removeAttribute('data-status'); } }
+
