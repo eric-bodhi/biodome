@@ -975,3 +975,144 @@ const IMAGE_NOTE = 'Images: all diagrams, icons, and illustrations are original 
 if (typeof module !== 'undefined') module.exports = { ROOMS, SOURCES, IMAGE_NOTE };
 
 </script>
+<script>
+(function(){
+'use strict';
+const DESIGNER = '';            // e.g. 'Designed by Jordan Lee'
+const WRONG_COST = 3, HINT_COST = 5;
+const $ = (s, el=document) => el.querySelector(s);
+const $$ = (s, el=document) => Array.from(el.querySelectorAll(s));
+const h = (tag, attrs={}, html) => { const e=document.createElement(tag); for (const k in attrs){ if(k==='class') e.className=attrs[k]; else if(k.startsWith('on')) e.addEventListener(k.slice(2), attrs[k]); else if(attrs[k]!==false && attrs[k]!=null) e.setAttribute(k, attrs[k]===true?'':attrs[k]); } if(html!=null) e.innerHTML=html; return e; };
+const stripTags = s => s.replace(/<[^>]+>/g,'');
+
+const S = {
+  name:'', started:0, ended:0, stability:100, hints:0, tries:0,
+  current:0, skipped:[], solved:new Array(ROOMS.length).fill(false), hintsShown:new Array(ROOMS.length).fill(0),
+  ans: ROOMS.map(r => r.parts.map(p => initAnswer(p))),
+  explanation:''
+};
+
+function initAnswer(p){
+  switch(p.type){
+    case 'equation': return { sel:null, eqs:p.eqs.map(e => ({ left:new Array(e.left.length).fill(null), right:new Array(e.right.length).fill(null) })) };
+    case 'mc': return null;
+    case 'selects': return Object.fromEntries(p.rows.map(r => [r.id, null]));
+    case 'table': return Object.fromEntries(p.rows.map(r => [r.id, {a:null, b:null}]));
+    case 'sort': return Object.fromEntries(p.items.map(i => [i.id, null]));
+    case 'numbers': return Object.fromEntries(p.fields.map(f => [f.id, '']));
+    case 'order': return p.items.map(i => i.id);
+    case 'written': return '';
+  }
+}
+
+/* ───────── hex geometry ───────── */
+function hexPoints(cx, cy, r){ const pts=[]; for(let i=0;i<6;i++){ const a=Math.PI/180*(60*i); pts.push((cx+r*Math.cos(a)).toFixed(1)+','+(cy+r*Math.sin(a)).toFixed(1)); } return pts.join(' '); }
+const HR = 57;
+const RING = (() => { const d=Math.sqrt(3)*HR+8; return [-90,-30,30,90,150,210].map(a => [d*Math.cos(a*Math.PI/180), d*Math.sin(a*Math.PI/180)]); })();
+const LOCK_ICON = 'M-6 2 h12 v9 h-12 z M-3.5 2 v-4 a3.5 3.5 0 0 1 7 0 v4';
+const CHECK_ICON = 'M-6 2 l4 4 l8 -9';
+
+function startMarkSVG(){
+  let s = '<svg viewBox="-180 -180 360 360" xmlns="http://www.w3.org/2000/svg">';
+  s += '<circle cx="0" cy="0" r="174" fill="none" stroke="var(--line)" stroke-width="1.5" stroke-dasharray="2 7"/>';
+  ROOMS.forEach((r,i) => {
+    const [x,y]=RING[i];
+    s += `<polygon points="${hexPoints(x,y,HR)}" fill="color-mix(in srgb, ${r.color} 22%, var(--panel))" stroke="${r.color}" stroke-width="2.5"/>`;
+    s += `<text x="${x}" y="${y+12}" text-anchor="middle" style="font:800 38px var(--display);fill:${r.color}">${r.id}</text>`;
+  });
+  s += `<polygon points="${hexPoints(0,0,HR)}" fill="var(--ink)"/>`;
+  s += `<text x="0" y="-2" text-anchor="middle" style="font:800 20px var(--display);fill:var(--on-ink);letter-spacing:.06em">AIRLOCK</text>`;
+  s += `<text x="0" y="18" text-anchor="middle" style="font:700 11px var(--body);fill:var(--on-ink)">sealed</text>`;
+  s += '</svg>';
+  return s;
+}
+
+function renderMap(){
+  let s = '<svg viewBox="-180 -180 360 360" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Six rooms around the exit airlock">';
+  s += '<circle cx="0" cy="0" r="174" fill="none" stroke="var(--line)" stroke-width="1.5" stroke-dasharray="2 7"/>';
+  ROOMS.forEach((r,i) => {
+    const [x,y]=RING[i];
+    const unlocked = i===0 || S.solved[i-1];
+    const cls = ['hex', S.solved[i]?'solved':'', !unlocked?'locked':'', S.current===i && !S.report?'current':''].join(' ');
+    const state = S.solved[i] ? 'solved' : unlocked ? 'open' : 'locked';
+    const words = r.name.split(' ');
+    s += `<g class="${cls}" style="--rc:${r.color}" data-room="${i}" tabindex="0" role="button" aria-label="Room ${r.id}, ${r.name}, ${state}">`;
+    s += `<polygon points="${hexPoints(x,y,HR)}"/>`;
+    s += `<text class="hx-num" x="${x}" y="${y-2}" text-anchor="middle">${r.id}</text>`;
+    s += `<text class="hx-name" x="${x}" y="${y+16}" text-anchor="middle">${words[0]}</text>`;
+    if(words[1]) s += `<text class="hx-name" x="${x}" y="${y+30}" text-anchor="middle">${words.slice(1).join(' ')}</text>`;
+    if(!unlocked) s += `<path class="hx-icon" transform="translate(${x},${y-40})" d="${LOCK_ICON}" style="color:var(--ink-2)"/>`;
+    if(S.solved[i]) s += `<path class="hx-icon" transform="translate(${x},${y-40})" d="${CHECK_ICON}" style="color:${r.color};stroke-width:3"/>`;
+    s += '</g>';
+  });
+  const open = S.solved.every(Boolean);
+  s += `<g class="hex exit ${open?'open':'locked'}" data-room="exit" tabindex="0" role="button" aria-label="Exit airlock, ${open?'open':'sealed'}">`;
+  s += `<polygon points="${hexPoints(0,0,HR)}"/>`;
+  s += `<text x="0" y="2" text-anchor="middle" style="font:800 22px var(--display);letter-spacing:.06em">AIRLOCK</text>`;
+  s += `<text x="0" y="20" text-anchor="middle" style="font:700 12px var(--body)">${open?'open':'sealed'}</text>`;
+  s += '</g></svg>';
+  $('#domeMap').innerHTML = s;
+  $$('#domeMap [data-room]').forEach(g => {
+    const go = () => {
+      const v = g.dataset.room;
+      if(v==='exit'){ if(S.solved.every(Boolean)) showReport(); else toast('The airlock opens after all six rooms are solved.'); return; }
+      const i = +v; const unlocked = i===0 || S.solved[i-1];
+      if(!unlocked){ toast(`Room ${i+1} is sealed. Solve Room ${i} first.`); return; }
+      S.current = i; renderRoom(); renderMap(); $('#room').focus({preventScroll:true}); window.scrollTo({top:0, behavior:'smooth'});
+    };
+    g.addEventListener('click', go);
+    g.addEventListener('keydown', e => { if(e.key==='Enter' || e.key===' '){ e.preventDefault(); go(); } });
+  });
+}
+
+function toast(msg){
+  const fb = $('#feedback');
+  if(fb){ fb.className='feedback show info'; fb.textContent=msg; }
+}
+
+/* ───────── HUD ───────── */
+function fmt(ms){ const t=Math.floor(ms/1000); const m=Math.floor(t/60), s=t%60; return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0'); }
+function tick(){ if(S.started && !S.ended) $('#timer').textContent = fmt(Date.now()-S.started); }
+function updateHUD(){
+  $('#stabTxt').textContent = S.stability + '%';
+  const bar = $('#stabBar'); bar.style.width = S.stability + '%';
+  bar.style.background = S.stability > 60 ? 'var(--h2o)' : S.stability > 30 ? 'var(--sun)' : 'var(--bad)';
+  $('#logBtn').innerHTML = `<span class="lg">Data log</span><span class="sm">Log</span> ${S.solved.filter(Boolean).length}/${ROOMS.length}`;
+}
+function drain(n){ S.stability = Math.max(0, S.stability - n); updateHUD(); }
+
+/* ───────── custom select ───────── */
+let openSel = null;
+function closeSel(){ if(openSel){ openSel.btn.setAttribute('aria-expanded','false'); openSel.list.hidden = true; openSel = null; } }
+document.addEventListener('click', e => { if(openSel && !openSel.wrap.contains(e.target)) closeSel(); });
+let selCount = 0;
+function makeSelect(options, value, onChange, ariaLabel, colLabel){
+  const id = 'sel' + (++selCount);
+  const wrap = h('div', {class:'csel'}); if(colLabel) wrap.dataset.col = colLabel;
+  const btn = h('button', {type:'button', class:'csel-btn', 'aria-haspopup':'listbox', 'aria-expanded':'false', 'aria-controls':id+'-list', 'aria-label':ariaLabel});
+  const list = h('ul', {class:'csel-list', role:'listbox', id:id+'-list', 'aria-label':ariaLabel}); list.hidden = true;
+  const setBtn = v => { const o = options.find(o => o.id===v); btn.innerHTML = '<span>'+(o ? o.html : 'Choose…')+'</span>'; btn.classList.toggle('empty', !o); btn.setAttribute('aria-label', ariaLabel + ': ' + (o ? stripTags(o.html) : 'not chosen')); };
+  options.forEach(o => {
+    const li = h('li', {role:'option', tabindex:'-1', 'data-v':o.id, 'aria-selected': String(o.id===value)}, o.html);
+    li.addEventListener('click', () => pick(o.id));
+    list.appendChild(li);
+  });
+  function pick(v){ value = v; setBtn(v); $$('li', list).forEach(li => li.setAttribute('aria-selected', String(li.dataset.v===v))); onChange(v); closeSel(); btn.focus(); }
+  function open(){ closeSel(); btn.setAttribute('aria-expanded','true'); list.hidden=false; openSel={wrap,btn,list}; const cur = $('li[aria-selected="true"]', list) || list.firstElementChild; cur.focus(); }
+  btn.addEventListener('click', e => { e.stopPropagation(); if(list.hidden) open(); else closeSel(); });
+  btn.addEventListener('keydown', e => { if(e.key==='ArrowDown' || e.key==='ArrowUp'){ e.preventDefault(); open(); } });
+  list.addEventListener('keydown', e => {
+    const items = $$('li', list); const i = items.indexOf(document.activeElement);
+    if(e.key==='ArrowDown'){ e.preventDefault(); items[Math.min(items.length-1, i+1)].focus(); }
+    else if(e.key==='ArrowUp'){ e.preventDefault(); items[Math.max(0, i-1)].focus(); }
+    else if(e.key==='Home'){ e.preventDefault(); items[0].focus(); }
+    else if(e.key==='End'){ e.preventDefault(); items[items.length-1].focus(); }
+    else if(e.key==='Enter' || e.key===' '){ e.preventDefault(); if(i>=0) pick(items[i].dataset.v); }
+    else if(e.key==='Escape'){ e.preventDefault(); closeSel(); btn.focus(); }
+    else if(e.key==='Tab'){ closeSel(); }
+  });
+  setBtn(value);
+  wrap.append(btn, list);
+  return wrap;
+}
+
