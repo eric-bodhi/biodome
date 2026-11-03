@@ -1299,3 +1299,192 @@ function checkPart(p, a){
 }
 function clearStatus(pi){ const el = $(`#part-${pi}`); if(el){ el.removeAttribute('data-status'); } }
 
+/* ───────── room view ───────── */
+function renderRoom(){
+  const ri = S.current, r = ROOMS[ri];
+  const main = $('#room'); main.innerHTML = ''; main.style.setProperty('--rc', r.color);
+  const head = h('div', {class:'room-head'});
+  head.innerHTML = `<div class="room-num">Room ${r.id} of ${ROOMS.length}</div><h2>${r.name}</h2><p class="room-meta"><span>${r.topic}</span><span>${r.where}</span></p>`;
+  main.appendChild(head);
+
+  if(S.solved[ri]){
+    const b = h('div', {class:'solved-banner'});
+    b.innerHTML = `<h3>Door ${r.id} is open</h3><div class="log-body"><p><strong>${r.log.title}</strong></p>${r.log.html}</div>`;
+    main.appendChild(b);
+    const act = h('div', {class:'room-actions'});
+    const next = ri < ROOMS.length-1 ? h('button', {class:'btn btn-primary', type:'button'}, `Go to Room ${ri+2}`) : h('button', {class:'btn btn-primary', type:'button'}, 'Go to the airlock');
+    next.addEventListener('click', () => { if(ri < ROOMS.length-1){ S.current = ri+1; renderRoom(); renderMap(); window.scrollTo({top:0, behavior:'smooth'}); } else showReport(); });
+    act.appendChild(next); main.appendChild(act);
+    main.appendChild(h('div', {class:'feedback', id:'feedback', role:'status', 'aria-live':'polite'}));
+    return;
+  }
+
+  const hx = h('div', {class:'helix'});
+  hx.innerHTML = `<svg class="helix-badge" viewBox="0 0 44 44" aria-hidden="true"><polygon points="${hexPoints(22,22,21)}"/><circle cx="22" cy="22" r="6"/></svg><div><b>HELIX</b><p>${r.helix}</p></div>`;
+  main.appendChild(hx);
+
+  if(r.diagram === 'cellmap'){
+    const d = h('div', {class:'diagram'});
+    d.innerHTML = $('#cellmapTpl').innerHTML;
+    main.appendChild(d);
+    main.appendChild(h('p', {class:'diagram-hint'}, 'Swipe sideways to see the whole map.'));
+  }
+
+  const ol = h('ol', {class:'parts'});
+  r.parts.forEach((p, pi) => {
+    const li = h('li', {class:'part', id:`part-${pi}`});
+    li.appendChild(h('div', {class:'part-letter', 'aria-hidden':'true'}, String.fromCharCode(65+pi)));
+    li.appendChild(h('h3', {}, `<span class="visually-hidden">Part ${String.fromCharCode(65+pi)}: </span>${p.title}`));
+    li.appendChild(h('p', {class:'prompt'}, p.prompt));
+    const body = h('div', {class:'part-body'});
+    renderPart(ri, pi, p, body);
+    li.appendChild(body);
+    li.appendChild(h('p', {class:'part-status'}));
+    ol.appendChild(li);
+  });
+  main.appendChild(ol);
+
+  const hints = h('div', {class:'hints', id:'hints'});
+  main.appendChild(hints);
+  const paintHints = () => { hints.innerHTML = ''; for(let k=0;k<S.hintsShown[ri];k++) hints.appendChild(h('div', {class:'hint'}, `<b>Hint ${k+1}</b>${r.hints[k]}`)); };
+  paintHints();
+
+  const act = h('div', {class:'room-actions'});
+  const hintBtn = h('button', {class:'btn btn-ghost', type:'button'});
+  const setHintBtn = () => { const left = r.hints.length - S.hintsShown[ri]; hintBtn.textContent = left>0 ? `Use a hint (−${HINT_COST}% atmosphere)` : 'No hints left'; hintBtn.disabled = left<=0; };
+  hintBtn.addEventListener('click', () => { if(S.hintsShown[ri] < r.hints.length){ S.hintsShown[ri]++; S.hints++; drain(HINT_COST); paintHints(); setHintBtn(); hints.lastElementChild.scrollIntoView({block:'nearest', behavior:'smooth'}); } });
+  setHintBtn();
+  const skipBtn = h('button', {class:'linkish skip', type:'button'}, 'Skip this room');
+  skipBtn.addEventListener('click', () => skipRoom(ri));
+  const tryBtn = h('button', {class:'btn btn-primary', type:'button'}, 'Try the lock');
+  tryBtn.addEventListener('click', () => tryLock(ri));
+  act.append(skipBtn, hintBtn, tryBtn); main.appendChild(act);
+  main.appendChild(h('div', {class:'feedback', id:'feedback', role:'status', 'aria-live':'polite'}));
+}
+
+function tryLock(ri){
+  const r = ROOMS[ri]; let bad = [];
+  r.parts.forEach((p, pi) => {
+    const res = checkPart(p, S.ans[ri][pi]);
+    const el = $(`#part-${pi}`);
+    el.dataset.status = res.ok ? 'ok' : 'bad';
+    $('.part-status', el).textContent = res.ok ? '✓ Locked in' : '✗ ' + res.msg;
+    if(!res.ok) bad.push(String.fromCharCode(65+pi));
+  });
+  const fb = $('#feedback');
+  if(bad.length===0){
+    S.solved[ri] = true;
+    if(ri === ROOMS.length-1) S.explanation = S.ans[ri][3] || '';
+    fb.className = 'feedback'; fb.textContent = '';
+    updateHUD(); renderMap(); showReveal(ri);
+  } else {
+    S.tries++; drain(WRONG_COST);
+    fb.className = 'feedback show bad';
+    fb.textContent = `Lock rejected (−${WRONG_COST}% atmosphere). Check part${bad.length>1?'s':''} ${bad.join(', ')}.`;
+    const first = $(`#part-${bad[0].charCodeAt(0)-65}`); first.scrollIntoView({block:'center', behavior:'smooth'});
+  }
+}
+
+function skipRoom(ri){
+  S.solved[ri] = true;
+  if(!S.skipped.includes(ri+1)) S.skipped.push(ri+1);
+  if(ri === ROOMS.length-1) S.explanation = S.ans[ri][3] || '';
+  updateHUD(); renderMap(); showReveal(ri, true);
+}
+
+/* ───────── reveal ───────── */
+function showReveal(ri, skipped){
+  const r = ROOMS[ri], last = ri === ROOMS.length-1;
+  const ov = $('#reveal'), card = $('#revealCard');
+  card.style.setProperty('--rc', r.color); ov.style.setProperty('--rc', r.color);
+  let blades = ''; for(let k=0;k<6;k++){ blades += `<polygon class="blade" points="60,60 ${60+56*Math.cos(Math.PI/3*k)},${60+56*Math.sin(Math.PI/3*k)} ${60+56*Math.cos(Math.PI/3*(k+1))},${60+56*Math.sin(Math.PI/3*(k+1))}" />`; }
+  card.innerHTML = `<svg class="iris" viewBox="0 0 120 120" aria-hidden="true"><polygon class="core" points="${hexPoints(60,60,56)}"/>${blades}<path class="done" d="M38 61 L53 76 L83 44"/></svg>
+    <h2 id="revealTitle">Door ${r.id} open</h2>
+    <p class="sub">${skipped ? 'Room skipped. ' : ''}${last ? 'All six rooms are solved. The airlock is unsealing.' : `Power restored to Room ${r.id+1}: ${ROOMS[ri+1].name}.`}</p>
+    <div class="entry"><h3>Data log recovered: ${r.log.title}</h3><div class="log-body">${r.log.html}</div></div>
+    <div class="actions"><button class="btn btn-primary" type="button" id="revealGo">${last ? 'Open the airlock' : `Continue to Room ${r.id+1}`}</button></div>`;
+  ov.hidden = false; ov.classList.remove('play'); void ov.offsetWidth; ov.classList.add('play');
+  const go = $('#revealGo'); go.focus();
+  go.addEventListener('click', () => {
+    ov.hidden = true;
+    if(last){ showReport(); }
+    else { S.current = ri+1; renderRoom(); renderMap(); window.scrollTo({top:0}); $('#room').focus({preventScroll:true}); }
+  });
+}
+document.addEventListener('keydown', e => { if(e.key==='Escape' && !$('#reveal').hidden){ $('#revealGo')?.click(); } });
+
+/* ───────── data log + sources ───────── */
+function renderLog(){
+  const list = $('#logList'); list.innerHTML = '';
+  ROOMS.forEach((r, i) => {
+    const e = h('div', {class:'log-entry'+(S.solved[i]?'':' locked'), style:`--rc:${r.color}`});
+    e.innerHTML = S.solved[i] ? `<h3>Room ${r.id}: ${r.log.title}</h3><div class="log-body">${r.log.html}</div>` : `<h3>Room ${r.id}: encrypted</h3><p>Solve ${r.name} to recover this entry.</p>`;
+    list.appendChild(e);
+  });
+}
+function renderSources(){
+  $('#worksList').innerHTML = SOURCES.map(s => `<li>${s}</li>`).join('');
+  $('#imgNote').textContent = IMAGE_NOTE;
+}
+$$('[data-open]').forEach(b => b.addEventListener('click', () => { const d = document.getElementById(b.dataset.open); if(d.id==='logDlg') renderLog(); d.showModal(); }));
+$$('dialog [data-close]').forEach(b => b.addEventListener('click', () => b.closest('dialog').close()));
+$$('dialog').forEach(d => d.addEventListener('click', e => { if(e.target===d) d.close(); }));
+
+/* ───────── report ───────── */
+function showReport(){
+  if(!S.ended) S.ended = Date.now();
+  S.report = true;
+  document.body.classList.remove('in-game');
+  $('#game').hidden = true; $('#report').hidden = false;
+  const t = fmt(S.ended - S.started);
+  const date = new Date(S.ended).toLocaleDateString(undefined, {year:'numeric', month:'long', day:'numeric'});
+  const w = $('#reportWrap');
+  w.innerHTML = `
+    <p class="report-note">Biodome Six mission report for ${escapeHTML(S.name || 'Crew member')}, ${date}</p>
+    <h1>The air is breathable again</h1>
+    <p>You rebuilt the life-support loop and opened the airlock. Matter cycles, energy flows, and every crew member and plant in the dome is back on a steady supply of ${'O<sub>2</sub>'} and ATP.</p>
+    <div class="stats">
+      <div class="stat"><small>Time in dome</small><b>${t}</b></div>
+      <div class="stat"><small>Atmosphere left</small><b>${S.stability}%</b></div>
+      <div class="stat"><small>Hints used</small><b>${S.hints}</b></div>
+      <div class="stat"><small>Rejected lock attempts</small><b>${S.tries}</b></div>
+    </div>
+    ${S.skipped.length ? `<p class="report-note">Skipped rooms: ${[...S.skipped].sort((a,b)=>a-b).join(', ')}. These locks were opened with the skip button, not solved.</p>` : ''}
+    <h2>Recovered data log</h2>
+    ${ROOMS.map(r => `<div class="log-entry" style="--rc:${r.color}"><h3>Room ${r.id}, ${r.name}: ${r.log.title}</h3><div class="log-body">${r.log.html}</div></div>`).join('')}
+    <h2>Your report to HELIX</h2>
+    <div class="explain-box">${S.explanation.trim() ? escapeHTML(S.explanation) : 'No report filed' + (S.skipped.includes(ROOMS.length) ? ' (Room 6 was skipped).' : '.')}</div>
+    <p class="report-note">Facilitator: score this explanation with the 4-point scale in the facilitator guide.</p>
+    <h2>Works cited</h2>
+    <ul class="works">${SOURCES.map(x => `<li>${x}</li>`).join('')}</ul>
+    <p class="report-note">${IMAGE_NOTE}</p>
+    <div class="report-actions">
+      <button class="btn btn-primary" type="button" id="printBtn">Save or print this report</button>
+      <button class="btn btn-ghost" type="button" id="againBtn">Play again</button>
+    </div>`;
+  $('#printBtn').addEventListener('click', () => window.print());
+  $('#againBtn').addEventListener('click', () => location.reload());
+  window.scrollTo({top:0});
+}
+function escapeHTML(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ───────── start ───────── */
+$('#startMark').innerHTML = startMarkSVG();
+if(DESIGNER){ const d = $('#designerLine'); d.textContent = DESIGNER; d.hidden = false; }
+renderSources();
+$('#startForm').addEventListener('submit', e => {
+  e.preventDefault();
+  S.name = $('#crewName').value.trim();
+  S.started = Date.now();
+  $('#start').hidden = true; $('#game').hidden = false; document.body.classList.add('in-game');
+  updateHUD(); renderMap(); renderRoom();
+  setInterval(tick, 1000);
+  window.scrollTo({top:0}); $('#room').focus({preventScroll:true});
+});
+
+// test hook
+window.__biodome = { S, ROOMS, showReport };
+})();
+</script>
+</body>
+</html>
