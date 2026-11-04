@@ -394,15 +394,6 @@ dialog::backdrop{ background:rgba(5,20,18,.5); }
   .dome{ max-width:250px; }
   .diagram-hint{ display:block; }
 }
-
-/* ── Print: only the mission report ── */
-@media print{
-  :root{ --glass:#fff; --panel:#fff; --panel-2:#f3f6f5; --ink:#0F2F29; --ink-2:#47615B; --line-2:#cfdcd8; padding:0; }
-  body{ background:#fff; }
-  #start, #game, .reveal, dialog, .report-actions{ display:none !important; }
-  #report{ display:block !important; padding:0; }
-  .stat, .log-entry, .explain-box{ break-inside:avoid; }
-}
 </style>
 </head>
 <body>
@@ -970,7 +961,7 @@ const SOURCES = [
   'Urry, Lisa A., et al. <em>Campbell Biology.</em> 12th ed., Pearson, 2020.',
   'Zedalis, Julianne, and John Eggebrecht. <em>Biology for AP® Courses.</em> OpenStax, 2018. Chapter 7, “Cellular Respiration,” and Chapter 8, “Photosynthesis,” openstax.org/books/biology-ap-courses/pages/8-introduction. Accessed 1 Nov. 2026.'
 ];
-const IMAGE_NOTE = 'Images: all diagrams, icons, and illustrations are original vector drawings made for this project. No outside images were used.';
+const IMAGE_NOTE = 'All images were generated with Gemini AI.';
 
 if (typeof module !== 'undefined') module.exports = { ROOMS, SOURCES, IMAGE_NOTE };
 
@@ -1459,10 +1450,8 @@ function showReport(){
     <ul class="works">${SOURCES.map(x => `<li>${x}</li>`).join('')}</ul>
     <p class="report-note">${IMAGE_NOTE}</p>
     <div class="report-actions">
-      <button class="btn btn-primary" type="button" id="printBtn">Save or print this report</button>
-      <button class="btn btn-ghost" type="button" id="againBtn">Play again</button>
+      <button class="btn btn-primary" type="button" id="againBtn">Play again</button>
     </div>`;
-  $('#printBtn').addEventListener('click', () => window.print());
   $('#againBtn').addEventListener('click', () => location.reload());
   window.scrollTo({top:0});
 }
